@@ -1,0 +1,16 @@
+evaluated_model_type,wrapper_model_name,chunk_index,stream_label,active_model,period_accuracy,cumulative_accuracy
+ARF,AER_ARF,1,Real_Phishing,Expert_0_ARFClassifier,85.54216867469879,85.54216867469879
+ARF,AER_MultiModel,1,Real_Phishing,Expert_0_ARFClassifier,85.54216867469879,85.54216867469879
+ARF,ShadowExpertModel_ARF,1,Real_Phishing,Expert_0_ARFClassifier,85.54216867469879,85.54216867469879
+ARF,AER_ARF,2,Real_Phishing,Expert_0_ARFClassifier,89.60000000000001,87.5751503006012
+ARF,AER_MultiModel,2,Real_Phishing,Expert_0_ARFClassifier,89.60000000000001,87.5751503006012
+ARF,ShadowExpertModel_ARF,2,Real_Phishing,Expert_0_ARFClassifier,89.60000000000001,87.5751503006012
+ARF,AER_ARF,3,Real_Phishing,Expert_0_ARFClassifier,93.2,89.45260347129505
+ARF,AER_MultiModel,3,Real_Phishing,Expert_0_ARFClassifier,93.2,89.45260347129505
+ARF,ShadowExpertModel_ARF,3,Real_Phishing,Expert_0_ARFClassifier,93.2,89.45260347129505
+ARF,AER_ARF,4,Real_Phishing,Expert_0_ARFClassifier,93.2,90.39039039039038
+ARF,AER_MultiModel,4,Real_Phishing,Expert_0_ARFClassifier,93.2,90.39039039039038
+ARF,ShadowExpertModel_ARF,4,Real_Phishing,Expert_0_ARFClassifier,93.2,90.39039039039038
+ARF,AER_ARF,5,Real_Phishing,Expert_0_ARFClassifier,93.60000000000001,91.03282626100881
+ARF,AER_MultiModel,5,Real_Phishing,Expert_0_ARFClassifier,93.60000000000001,91.03282626100881
+ARF,ShadowExpertModel_ARF,5,Real_Phishing,Expert_0_ARFClassifier,93.60000000000001,91.03282626100881

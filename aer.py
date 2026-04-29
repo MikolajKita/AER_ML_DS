@@ -1,0 +1,264 @@
+from collections import deque
+import copy
+import logging
+
+from river import base
+from river.drift.binary import EDDM
+
+
+logger = logging.getLogger(__name__)
+
+
+class ActiveExpertRepository(base.Classifier):
+    """
+    Active Expert Repository (AER).
+
+    During normal operation, only the active expert learns. When the drift
+    detector enters warning, AER starts a simple tournament between:
+    - the current active expert,
+    - a fresh shadow expert,
+    - mutable clones of frozen repository experts.
+
+    On confirmed drift, the best challenger replaces the active expert only if
+    its sliding-window accuracy beats the active expert's accuracy.
+    """
+
+    def __init__(
+        self,
+        base_estimator: base.Classifier,
+        drift_detector=None,
+        min_samples=20,
+        window_size=20,
+        warmup_steps=-1,
+    ):
+        self.base_estimator = base_estimator
+        self.drift_detector = (
+            drift_detector.clone()
+            if drift_detector is not None
+            else EDDM(warm_start=50, alpha=0.8, beta=0.5)
+        )
+
+        self.active_expert = base_estimator.clone()
+        self.expert_counter = 0
+        self.active_expert_label = self._make_label(self.expert_counter, self.active_expert)
+
+        self.repository = []
+        self.repository_labels = []
+
+        self.min_samples = min_samples
+        self.window_size = window_size
+        self.warmup_steps = warmup_steps
+
+        self.in_warning = False
+        self.warning_step_count = 0
+        self.active_snapshot = None
+        self.shadow_expert = None
+        self.repository_clones = []
+        self.repository_clone_labels = []
+
+        self.active_correct = None
+        self.shadow_correct = None
+        self.repository_correct = []
+
+    def predict_one(self, x, **kwargs):
+        return self.active_expert.predict_one(x, **kwargs)
+
+    def predict_proba_one(self, x, **kwargs):
+        return self.active_expert.predict_proba_one(x, **kwargs)
+
+    def learn_one(self, x, y):
+        y_pred_active = self.active_expert.predict_one(x)
+        error = 0.0 if y_pred_active == y else 1.0
+        self.drift_detector.update(error)
+
+        if self.drift_detector.warning_detected and not self.in_warning:
+            self._start_warning_phase()
+
+        if self.in_warning and self.drift_detector.warning_detected:
+            self._score_warning_candidates(x, y, y_pred_active)
+            self._train_warning_candidates(x, y)
+            self.warning_step_count += 1
+        else:
+            self.active_expert.learn_one(x, y)
+        
+        if self.drift_detector.drift_detected:
+            logger.info("AER drift detected: active_expert=%s", self.active_expert_label)
+            self._select_active_expert()
+            self._reset_warning_phase()
+            self.drift_detector = self.drift_detector.clone()
+        elif self.in_warning and not self.drift_detector.warning_detected:
+            self._reset_warning_phase()
+
+        return self
+
+    def get_active_expert_label(self):
+        return self.active_expert_label
+
+    def _start_warning_phase(self):
+        self.in_warning = True
+        self.warning_step_count = 0
+        self.active_snapshot = copy.deepcopy(self.active_expert)
+        self.shadow_expert = self.base_estimator.clone()
+        self.repository_clones = [copy.deepcopy(expert) for expert in self.repository]
+        self.repository_clone_labels = list(self.repository_labels)
+
+        self.active_correct = deque(maxlen=self.window_size)
+        self.shadow_correct = deque(maxlen=self.window_size)
+        self.repository_correct = [
+            deque(maxlen=self.window_size) for _ in self.repository_clones
+        ]
+
+    def _score_warning_candidates(self, x, y, y_pred_active):
+        self.active_correct.append(self._is_correct(y, y_pred_active))
+
+        y_pred_shadow = self.shadow_expert.predict_one(x)
+        self.shadow_correct.append(self._is_correct(y, y_pred_shadow))
+
+        for clone, correct_window in zip(self.repository_clones, self.repository_correct):
+            y_pred_clone = clone.predict_one(x)
+            correct_window.append(self._is_correct(y, y_pred_clone))
+
+    def _train_warning_candidates(self, x, y):
+        self.active_expert.learn_one(x, y)
+        self.shadow_expert.learn_one(x, y)
+
+        for clone in self.repository_clones:
+            clone.learn_one(x, y)
+
+    def _select_active_expert(self):
+        self._archive_active_snapshot()
+
+        if self.active_correct is None or len(self.active_correct) < self.min_samples:
+            scored_samples = len(self.active_correct) if self.active_correct is not None else 0
+            logger.info(
+                "AER tournament skipped: active_expert=%s scored_samples=%d min_samples=%d. "
+                "Resetting to fresh expert.",
+                self.active_expert_label,
+                scored_samples,
+                self.min_samples,
+            )
+            self._replace_with_fresh_expert()
+            return
+        active_score = self._accuracy(self.active_correct)
+        candidates = self._tournament_candidates()
+
+        if not candidates:
+            self._log_tournament([], active_score=active_score)
+            return
+
+        best_score, best_model, best_label, is_new_expert = max(
+            candidates,
+            key=lambda candidate: candidate[0],
+        )
+        self._log_tournament(candidates, active_score=active_score, best_score=best_score)
+
+        if best_score <= active_score:
+            return
+
+        self.active_expert = best_model
+        self.active_expert_label = best_label
+
+        if is_new_expert:
+            self.expert_counter += 1
+
+    def _replace_with_fresh_expert(self):
+        if self.active_snapshot is None and self.active_expert_label not in self.repository_labels:
+            self.repository.append(self.active_expert.clone())
+            self.repository_labels.append(self.active_expert_label)
+
+        previous_label = self.active_expert_label
+        self.expert_counter += 1
+        self.active_expert = self.base_estimator.clone()
+        self.active_expert_label = self._make_label(self.expert_counter, self.active_expert)
+
+        logger.info(
+            "AER fresh expert activated: previous_expert=%s active_expert=%s",
+            previous_label,
+            self.active_expert_label,
+        )
+
+    def _tournament_candidates(self):
+        candidates = []
+
+        if len(self.shadow_correct) >= self.min_samples:
+            new_label = self._make_label(self.expert_counter + 1, self.shadow_expert)
+            candidates.append((
+                self._accuracy(self.shadow_correct),
+                self.shadow_expert,
+                new_label,
+                True,
+            ))
+
+        for clone, label, correct_window in zip(
+            self.repository_clones,
+            self.repository_clone_labels,
+            self.repository_correct,
+        ):
+            if len(correct_window) >= self.min_samples:
+                candidates.append((
+                    self._accuracy(correct_window),
+                    clone,
+                    label,
+                    False,
+                ))
+
+        return candidates
+
+    def _log_tournament(self, candidates, active_score=None, best_score=None):
+        candidate_scores = [
+            {
+                "label": label,
+                "score": score,
+                "is_new_expert": is_new_expert,
+            }
+            for score, _, label, is_new_expert in candidates
+        ]
+
+        if best_score is None and candidate_scores:
+            best_score = max(candidate["score"] for candidate in candidate_scores)
+
+        logger.info(
+            "AER tournament: active_expert=%s active_score=%s candidate_count=%d "
+            "best_score=%s candidates=%s",
+            self.active_expert_label,
+            active_score,
+            len(candidate_scores),
+            best_score,
+            candidate_scores,
+        )
+
+    def _archive_active_snapshot(self):
+        if self.active_snapshot is None:
+            return
+
+        if self.active_expert_label in self.repository_labels:
+            index = self.repository_labels.index(self.active_expert_label)
+            self.repository[index] = self.active_snapshot
+        else:
+            self.repository.append(self.active_snapshot)
+            self.repository_labels.append(self.active_expert_label)
+
+        self.active_snapshot = None
+
+    def _reset_warning_phase(self):
+        self.in_warning = False
+        self.warning_step_count = 0
+        self.active_snapshot = None
+        self.shadow_expert = None
+        self.repository_clones = []
+        self.repository_clone_labels = []
+        self.active_correct = None
+        self.shadow_correct = None
+        self.repository_correct = []
+
+    @staticmethod
+    def _make_label(index, expert):
+        return f"Expert_{index}_{expert.__class__.__name__}"
+
+    @staticmethod
+    def _is_correct(y_true, y_pred):
+        return 1.0 if y_pred == y_true else 0.0
+
+    @staticmethod
+    def _accuracy(correct_window):
+        return sum(correct_window) / len(correct_window)

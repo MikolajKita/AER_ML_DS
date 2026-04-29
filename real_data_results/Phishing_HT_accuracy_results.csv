@@ -1,0 +1,16 @@
+evaluated_model_type,wrapper_model_name,chunk_index,stream_label,active_model,period_accuracy,cumulative_accuracy
+HT,AER_HT,1,Real_Phishing,Expert_0_HoeffdingTreeClassifier,83.13253012048193,83.13253012048193
+HT,AER_MultiModel,1,Real_Phishing,Expert_0_HoeffdingTreeClassifier,83.13253012048193,83.13253012048193
+HT,ShadowExpertModel_HT,1,Real_Phishing,Expert_0_HoeffdingTreeClassifier,83.13253012048193,83.13253012048193
+HT,AER_HT,2,Real_Phishing,Expert_0_HoeffdingTreeClassifier,88.4,85.77154308617234
+HT,AER_MultiModel,2,Real_Phishing,Expert_0_HoeffdingTreeClassifier,88.4,85.77154308617234
+HT,ShadowExpertModel_HT,2,Real_Phishing,Expert_0_HoeffdingTreeClassifier,88.4,85.77154308617234
+HT,AER_HT,3,Real_Phishing,Expert_0_HoeffdingTreeClassifier,92.4,87.98397863818424
+HT,AER_MultiModel,3,Real_Phishing,Expert_0_HoeffdingTreeClassifier,92.4,87.98397863818424
+HT,ShadowExpertModel_HT,3,Real_Phishing,Expert_0_HoeffdingTreeClassifier,92.4,87.98397863818424
+HT,AER_HT,4,Real_Phishing,Expert_0_HoeffdingTreeClassifier,89.2,88.28828828828829
+HT,AER_MultiModel,4,Real_Phishing,Expert_0_HoeffdingTreeClassifier,89.2,88.28828828828829
+HT,ShadowExpertModel_HT,4,Real_Phishing,Expert_0_HoeffdingTreeClassifier,89.2,88.28828828828829
+HT,AER_HT,5,Real_Phishing,Expert_0_HoeffdingTreeClassifier,86.8,87.99039231385109
+HT,AER_MultiModel,5,Real_Phishing,Expert_0_HoeffdingTreeClassifier,86.8,87.99039231385109
+HT,ShadowExpertModel_HT,5,Real_Phishing,Expert_0_HoeffdingTreeClassifier,86.8,87.99039231385109

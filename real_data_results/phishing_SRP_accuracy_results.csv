@@ -1,0 +1,16 @@
+evaluated_model_type,wrapper_model_name,chunk_index,stream_label,active_model,period_accuracy,cumulative_accuracy
+SRP,AER_SRP,1,Real_Phishing,Expert_0_SRPClassifier,87.95180722891565,87.95180722891565
+SRP,AER_MultiModel,1,Real_Phishing,Expert_0_SRPClassifier,87.95180722891565,87.95180722891565
+SRP,ShadowExpertModel_SRP,1,Real_Phishing,Expert_0_SRPClassifier,87.95180722891565,87.95180722891565
+SRP,AER_SRP,2,Real_Phishing,Expert_1_SRPClassifier,88.8,88.37675350701403
+SRP,AER_MultiModel,2,Real_Phishing,Expert_1_HoeffdingTreeClassifier,85.2,86.57314629258516
+SRP,ShadowExpertModel_SRP,2,Real_Phishing,Expert_1_SRPClassifier,87.2,87.5751503006012
+SRP,AER_SRP,3,Real_Phishing,Expert_1_SRPClassifier,91.2,89.31909212283044
+SRP,AER_MultiModel,3,Real_Phishing,Expert_1_HoeffdingTreeClassifier,89.60000000000001,87.58344459279039
+SRP,ShadowExpertModel_SRP,3,Real_Phishing,Expert_1_SRPClassifier,89.2,88.11748998664886
+SRP,AER_SRP,4,Real_Phishing,Expert_1_SRPClassifier,92.4,90.09009009009009
+SRP,AER_MultiModel,4,Real_Phishing,Expert_1_HoeffdingTreeClassifier,86.8,87.38738738738738
+SRP,ShadowExpertModel_SRP,4,Real_Phishing,Expert_1_SRPClassifier,91.60000000000001,88.988988988989
+SRP,AER_SRP,5,Real_Phishing,Expert_1_SRPClassifier,93.60000000000001,90.79263410728583
+SRP,AER_MultiModel,5,Real_Phishing,Expert_1_HoeffdingTreeClassifier,88.8,87.6701361088871
+SRP,ShadowExpertModel_SRP,5,Real_Phishing,Expert_1_SRPClassifier,92.4,89.67173738991193

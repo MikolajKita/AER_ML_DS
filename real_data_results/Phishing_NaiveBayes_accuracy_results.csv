@@ -1,0 +1,16 @@
+evaluated_model_type,wrapper_model_name,chunk_index,stream_label,active_model,period_accuracy,cumulative_accuracy
+NaiveBayes,AER_NaiveBayes,1,Real_Phishing,Expert_0_GaussianNB,83.13253012048193,83.13253012048193
+NaiveBayes,AER_MultiModel,1,Real_Phishing,Expert_0_GaussianNB,83.13253012048193,83.13253012048193
+NaiveBayes,ShadowExpertModel_NaiveBayes,1,Real_Phishing,Expert_0_GaussianNB,83.13253012048193,83.13253012048193
+NaiveBayes,AER_NaiveBayes,2,Real_Phishing,Expert_0_GaussianNB,88.4,85.77154308617234
+NaiveBayes,AER_MultiModel,2,Real_Phishing,Expert_0_GaussianNB,88.4,85.77154308617234
+NaiveBayes,ShadowExpertModel_NaiveBayes,2,Real_Phishing,Expert_0_GaussianNB,88.4,85.77154308617234
+NaiveBayes,AER_NaiveBayes,3,Real_Phishing,Expert_0_GaussianNB,92.4,87.98397863818424
+NaiveBayes,AER_MultiModel,3,Real_Phishing,Expert_0_GaussianNB,92.4,87.98397863818424
+NaiveBayes,ShadowExpertModel_NaiveBayes,3,Real_Phishing,Expert_0_GaussianNB,92.4,87.98397863818424
+NaiveBayes,AER_NaiveBayes,4,Real_Phishing,Expert_0_GaussianNB,88.4,88.08808808808809
+NaiveBayes,AER_MultiModel,4,Real_Phishing,Expert_0_GaussianNB,88.4,88.08808808808809
+NaiveBayes,ShadowExpertModel_NaiveBayes,4,Real_Phishing,Expert_0_GaussianNB,88.4,88.08808808808809
+NaiveBayes,AER_NaiveBayes,5,Real_Phishing,Expert_0_GaussianNB,90.0,88.47077662129705
+NaiveBayes,AER_MultiModel,5,Real_Phishing,Expert_0_GaussianNB,90.0,88.47077662129705
+NaiveBayes,ShadowExpertModel_NaiveBayes,5,Real_Phishing,Expert_0_GaussianNB,90.0,88.47077662129705
