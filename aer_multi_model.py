@@ -36,8 +36,8 @@ class ActiveExpertRepositoryMultiModel(base.Classifier):
         base_estimator: base.Classifier,
         drift_detector=None,
         available_models=['HT', 'ARF', 'SRP', 'NaiveBayes'],
-        min_samples=20,
-        window_size=20,
+        min_samples=10,
+        window_size=30,
         warmup_steps=0,
     ):
         self.base_estimator = base_estimator

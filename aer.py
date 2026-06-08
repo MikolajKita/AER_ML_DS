@@ -27,8 +27,8 @@ class ActiveExpertRepository(base.Classifier):
         self,
         base_estimator: base.Classifier,
         drift_detector=None,
-        min_samples=20,
-        window_size=20,
+        min_samples=10,
+        window_size=10,
         warmup_steps=-1,
     ):
         self.base_estimator = base_estimator

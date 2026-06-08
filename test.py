@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from river import datasets
 from river.datasets import synth
-from river.drift.binary import EDDM, DDM
+from river.drift.binary import EDDM, HDDM_A
 
 os.environ.setdefault("MPLCONFIGDIR", str(Path("/tmp") / "matplotlib"))
 
@@ -45,13 +45,39 @@ def set_global_seeds(seed):
 def default_concepts(seed):
     return [
         ("Agrawal_Function_0", synth.Agrawal(seed=seed, classification_function=0)),
-        # ("Agrawal_Function_2", synth.Agrawal(seed=seed, classification_function=2)),
+        #("Agrawal_Function_2", synth.Agrawal(seed=seed, classification_function=4)),
         ("Agrawal_Function_6", synth.Agrawal(seed=seed, classification_function=6)),
+    ]
+
+
+def random_tree_concepts(seed=None):
+    concept_seeds = [42, 99, 123]
+    return [
+        (
+            f"RandomTree_{concept_seed}",
+            synth.RandomTree(
+                seed_tree=concept_seed,
+                seed_sample=concept_seed,
+                n_num_features=15,
+                n_cat_features=0,
+            ),
+        )
+        for concept_seed in concept_seeds
     ]
 
 
 def default_drift_detector():
     return EDDM(warm_start=30, alpha=0.95, beta=0.8)
+
+
+def hddma_drift_detector():
+    return HDDM_A()
+
+
+DRIFT_DETECTORS = {
+    "eddm": default_drift_detector,
+    "hddma": hddma_drift_detector,
+}
 
 
 def dataset_stream(dataset, stream_label):
@@ -81,6 +107,7 @@ def synthetic_sea_drift_stream(position=10000, width=1000, seed=42):
 DATASETS = {
     "synthetic_recurring": {
         "stream_factory": None,
+        "concepts_factory": default_concepts,
         "stream_length": 3_000,
         "chunk_size": 500,
         "track_events": "drifts",
@@ -88,8 +115,19 @@ DATASETS = {
         "known_drift": 500,
         "description": "Synthetic recurring Agrawal stream used by the original test.py run.",
     },
+    "synthetic_random_tree_recurring": {
+        "stream_factory": None,
+        "concepts_factory": random_tree_concepts,
+        "stream_length": 4_000,
+        "chunk_size": 500,
+        "track_events": "drifts",
+        "output_dir": "synth_random_tree_results",
+        "known_drift": 500,
+        "description": "Synthetic recurring RandomTree stream with four 15-dimensional concepts and three concept drifts.",
+    },
     "phishing": {
         "stream_factory": phishing_stream,
+        "concepts_factory": None,
         "stream_length": DEFAULT_REAL_STREAM_LENGTH,
         "chunk_size": 250,
         "track_events": "model_changes",
@@ -99,6 +137,7 @@ DATASETS = {
     },
     "elec2": {
         "stream_factory": elec2_stream,
+        "concepts_factory": None,
         "stream_length": DEFAULT_REAL_STREAM_LENGTH,
         "chunk_size": 1000,
         "track_events": "model_changes",
@@ -108,6 +147,7 @@ DATASETS = {
     },
     "synthetic_sea_drift": {
         "stream_factory": synthetic_sea_drift_stream,
+        "concepts_factory": None,
         "stream_length": DEFAULT_REAL_STREAM_LENGTH,
         "chunk_size": 1000,
         "track_events": "model_changes",
@@ -133,7 +173,7 @@ def build_models(model_type, available_model_types, drift_detector_factory):
             model_type=model_type,
             drift_detector=drift_detector_factory(),
         ),
-        # f"Standard_{model_type}": ModelFactory.createModel(model_type),
+        f"Standard_{model_type}": ModelFactory.createModel(model_type),
     }
 
 
@@ -241,6 +281,7 @@ def evaluate_model_type(
     output_dir=".",
     csv_filename_template="{model_type}_accuracy_results.csv",
     plot_filename_template="sliding_accuracy_{model_type}.png",
+    vanilla_plot_filename_template="sliding_accuracy_{model_type}_with_vanilla.png",
     plot_window=100,
     known_drift=None,
     show_plot_inline=False,
@@ -253,6 +294,7 @@ def evaluate_model_type(
 
     csv_path = output_dir / csv_filename_template.format(model_type=model_type)
     plot_path = output_dir / plot_filename_template.format(model_type=model_type)
+    vanilla_plot_path = output_dir / vanilla_plot_filename_template.format(model_type=model_type)
 
     with open(csv_path, mode="w", newline="") as f:
         writer = csv.writer(f)
@@ -302,8 +344,13 @@ def evaluate_model_type(
     remove_counter_fields(results)
 
     event_label = "Model change" if track_events == "model_changes" else "Drift"
+    wrapper_results = {
+        model_name: result
+        for model_name, result in results.items()
+        if not model_name.startswith("Standard_")
+    }
     plot_sliding_accuracy(
-        results,
+        wrapper_results,
         window=plot_window,
         show_inline=show_plot_inline,
         save_path=plot_path,
@@ -312,11 +359,22 @@ def evaluate_model_type(
     )
     print(f"Plot saved to '{plot_path}'")
 
+    plot_sliding_accuracy(
+        results,
+        window=plot_window,
+        show_inline=show_plot_inline,
+        save_path=vanilla_plot_path,
+        event_label=event_label,
+        known_drift=known_drift,
+    )
+    print(f"Vanilla comparison plot saved to '{vanilla_plot_path}'")
+
     return {
         "models": models,
         "results": results,
         "csv_path": csv_path,
         "plot_path": plot_path,
+        "vanilla_plot_path": vanilla_plot_path,
     }
 
 
@@ -392,12 +450,19 @@ def parse_args():
         action="store_true",
         help="Show plots interactively in addition to saving them.",
     )
+    parser.add_argument(
+        "--drift-detector",
+        choices=DRIFT_DETECTORS,
+        default="eddm",
+        help="Drift detector used by AER and ShadowExpertModel.",
+    )
     return parser.parse_args()
 
 
 def run_from_cli():
     args = parse_args()
     config = DATASETS[args.dataset]
+    seed = 42
     stream_length = args.stream_length or config["stream_length"]
     chunk_size = args.chunk_size or config["chunk_size"]
     output_dir = args.output_dir if args.output_dir is not None else config["output_dir"]
@@ -410,11 +475,16 @@ def run_from_cli():
     )
 
     logging.info("Evaluating %s: %s", args.dataset, config["description"])
+    logging.info("Using %s drift detector", args.drift_detector)
 
     filename_prefix = "" if args.dataset == "synthetic_recurring" else f"{args.dataset}_"
+    concepts_factory = config.get("concepts_factory")
+    concepts = concepts_factory(seed=seed) if concepts_factory is not None else None
 
     evaluate_models(
         args.model_types,
+        seed=seed,
+        concepts=concepts,
         stream_factory=config["stream_factory"],
         chunk_size=chunk_size,
         stream_length=stream_length,
@@ -422,9 +492,11 @@ def run_from_cli():
         output_dir=output_dir,
         csv_filename_template=f"{filename_prefix}{{model_type}}_accuracy_results.csv",
         plot_filename_template=f"{filename_prefix}sliding_accuracy_{{model_type}}.png",
+        vanilla_plot_filename_template=f"{filename_prefix}sliding_accuracy_{{model_type}}_with_vanilla.png",
         plot_window=args.plot_window,
         known_drift=config["known_drift"],
         show_plot_inline=args.show_plot_inline,
+        drift_detector_factory=DRIFT_DETECTORS[args.drift_detector],
     )
 
 

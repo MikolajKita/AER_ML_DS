@@ -1,6 +1,6 @@
 import numpy as np
 from river import base, metrics, ensemble, dummy, tree, naive_bayes, forest
-from river.drift.binary import HDDM_A, EDDM
+from river.drift.binary import EDDM
 
 class ModelFactory:
     """Factory to generate fresh River models based on a string identifier."""
@@ -29,10 +29,7 @@ class ShadowExpertModel(base.Classifier):
     """
     def __init__(self, model_type='NaiveBayes', drift_detector=None):
         self.model_type = model_type
-        # Initialize the first instance of the model
         self.model = ModelFactory.createModel(self.model_type)
-        
-        # Initialize drift detector (default to HDDM_A if none provided)
         self.drift_detector = (
             drift_detector.clone()
             if drift_detector is not None

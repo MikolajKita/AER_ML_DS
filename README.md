@@ -51,11 +51,12 @@ python test.py --dataset elec2 --output-dir real_data_results
 
 ## Using `test.py`
 
-`test.py` evaluates each requested model type with three wrappers:
+`test.py` evaluates each requested model type with three wrappers plus the vanilla base learner:
 
 - `AER_<model_type>`: Active Expert Repository with that base model.
 - `AER_MultiModel`: Active Expert Repository with challengers from all selected model types.
 - `ShadowExpertModel_<model_type>`: Reset-on-drift baseline using that model type.
+- `Standard_<model_type>`: Vanilla online learner without drift handling.
 
 Supported model types are:
 
@@ -88,12 +89,17 @@ Available options:
 | `--river-data-dir` | `.river_data` | Cache directory for remote River datasets. |
 | `--plot-window` | `100` | Sliding-window size used in accuracy plots. |
 | `--show-plot-inline` | `False` | Show plots interactively in addition to saving them. |
+| `--drift-detector` | `eddm` | Drift detector for AER and ShadowExpertModel. Choices: `eddm`, `hddma`. |
 
 ### Dataset Notes
 
 - `synthetic_recurring` cycles between two Agrawal concepts:
   - `Agrawal_Function_0`
   - `Agrawal_Function_6`
+- `synthetic_random_tree_recurring` cycles through four `river.datasets.synth.RandomTree` concepts:
+  - seeds `42`, `99`, `123`, and `777`
+  - `15` numeric features and `0` categorical features
+  - default run length `4,000`, with concept changes every `1,000` instances
 - `phishing` uses `river.datasets.Phishing`.
 - `elec2` uses `river.datasets.Elec2`.
 - `synthetic_sea_drift` uses `river.datasets.synth.ConceptDriftStream` with SEA variant `0` drifting to SEA variant `1`.
@@ -102,10 +108,11 @@ River datasets that need local cached files use the `RIVER_DATA` environment var
 
 ## Output Files
 
-Each model type produces two files:
+Each model type produces three files:
 
 - Accuracy CSV: chunk-level period and cumulative accuracy.
-- PNG plot: sliding-window accuracy over time with detected events and known drift markers when available.
+- PNG plot: sliding-window accuracy over time for drift-handling wrappers, with detected events and known drift markers when available.
+- Vanilla comparison PNG: the same plot with `Standard_<model_type>` included for comparison, saved separately with `_with_vanilla` in the filename.
 
 The CSV columns are:
 

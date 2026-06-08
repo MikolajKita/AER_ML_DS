@@ -29,7 +29,7 @@ def plot_sliding_accuracy(
     :param event_label: Label used for vertical event markers.
     """
     colors = itertools.cycle(plt.cm.Dark2.colors) 
-    marker = itertools.cycle((',', '+', 'x', 'o', '*'))
+    marker = itertools.cycle(('+', 'x', 'o', '*'))
     
     plt.figure(figsize=(15, 8))
     plt.xlabel('Instances')
@@ -39,7 +39,6 @@ def plot_sliding_accuracy(
         if isinstance(known_drift, (int, float)):
             drift_indices = np.arange(known_drift, total_len, known_drift)
         else:
-            # Otherwise, assume it's already a list of indices
             drift_indices = known_drift
 
         for i, drift_idx in enumerate(drift_indices):
@@ -57,8 +56,6 @@ def plot_sliding_accuracy(
     for model_name, data in model_results.items():
         accuracy_series = data.get('accuracy_series', [])
         drifts = data.get('drifts', [])
-        
-        # Calculate overall accuracy if not explicitly provided
         overall_acc = data.get('overall_accuracy')
         if overall_acc is None:
             valid_acc = [a for a in accuracy_series if not np.isnan(a)]
@@ -74,18 +71,13 @@ def plot_sliding_accuracy(
         current_color = next(colors)
         label = f"{model_name} (Overall: {overall_acc:.1f}%)"
         
-        # Plot sliding accuracy
-        plt.plot(instance_indexes[::100], sliding_window_accuracy[::100], color=current_color,
-                 label=label, marker=next(marker), markersize=5)
+        plt.plot(instance_indexes[::window], sliding_window_accuracy[::window], color=current_color,
+                 label=label, marker=next(marker), markersize=8, alpha=0.5)
                  
-        # Plot event lines
         for i, drift_idx in enumerate(drifts):
-            drift_label = f'{model_name} {event_label}' if i == 0 else ""
-            # Cycle colors for events based on model to distinguish them
-            
+            drift_label = f'{model_name} {event_label}' if i == 0 else ""            
             plt.axvline(x=drift_idx - 1, color=current_color, linestyle='--', alpha=0.5, label=drift_label)
             
-    # Deduplicate legend labels
     handles, labels = plt.gca().get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
     plt.legend(by_label.values(), by_label.keys(), loc='lower left')
